@@ -17,7 +17,7 @@ class Env(object):
         self.SCREENHEIGHT = 512
         # amount by which base can maximum shift to left
         self.PIPEGAPSIZE = 100  # gap between upper and lower part of pipe
-        self.BASEY = SCREENHEIGHT * 0.79
+        self.BASEY = self.SCREENHEIGHT * 0.79
         # image and hitmask  dicts
         self.IMAGES, self.HITMASKS = {}, {}
 
@@ -37,10 +37,9 @@ class Env(object):
         # if game end
         self.done = False
 
-
         pygame.init()
         self.FPSCLOCK = pygame.time.Clock()
-        self.SCREEN = pygame.display.set_mode((SCREENWIDTH, SCREENHEIGHT))
+        self.SCREEN = pygame.display.set_mode((self.SCREENWIDTH, self.SCREENHEIGHT))
         pygame.display.set_caption('Flappy Bird')
 
         # numbers sprites for score display
@@ -64,34 +63,36 @@ class Env(object):
         # base (ground) sprite
         self.IMAGES['base'] = pygame.image.load('assets/sprites/base.png').convert_alpha()
 
-        self.IMAGES['background'] = pygame.image.load(BACKGROUNDS).convert()
+        self.IMAGES['background'] = pygame.image.load(self.BACKGROUNDS).convert()
 
         # select random player sprites
         self.IMAGES['player'] = (
-            pygame.image.load(PLAYERS[0]).convert_alpha(),
-            pygame.image.load(PLAYERS[1]).convert_alpha(),
-            pygame.image.load(PLAYERS[2]).convert_alpha(),
+            pygame.image.load(self.PLAYERS[0]).convert_alpha(),
+            pygame.image.load(self.PLAYERS[1]).convert_alpha(),
+            pygame.image.load(self.PLAYERS[2]).convert_alpha(),
         )
 
         # select random pipe sprites
         self.IMAGES['pipe'] = (
             pygame.transform.rotate(
-                pygame.image.load(PIPES).convert_alpha(), 180),
-            pygame.image.load(PIPES).convert_alpha(),
+                pygame.image.load(self.PIPES).convert_alpha(), 180),
+            pygame.image.load(self.PIPES).convert_alpha(),
         )
 
         # hismask for pipes
         self.HITMASKS['pipe'] = (
-            getHitmask(self.IMAGES['pipe'][0]),
-            getHitmask(self.IMAGES['pipe'][1]),
+            self.getHitmask(self.IMAGES['pipe'][0]),
+            self.getHitmask(self.IMAGES['pipe'][1]),
         )
 
         # hitmask for player
         self.HITMASKS['player'] = (
-            getHitmask(self.IMAGES['player'][0]),
-            getHitmask(self.IMAGES['player'][1]),
-            getHitmask(self.IMAGES['player'][2]),
+            self.getHitmask(self.IMAGES['player'][0]),
+            self.getHitmask(self.IMAGES['player'][1]),
+            self.getHitmask(self.IMAGES['player'][2]),
         )
+
+        self.init_game()
 
     def init_game(self):
         """Shows welcome screen animation of flappy bird"""
@@ -106,20 +107,21 @@ class Env(object):
         # player shm for up-down motion on welcome screen
         playerShmVals = {'val': 0, 'dir': 1}
 
-        self.movementInfo =  {
+        self.movementInfo = {
             'playery': playery + playerShmVals['val'],
             'basex': basex,
             'playerIndexGen': playerIndexGen,
         }
 
         self.score = self.playerIndex = self.loopIter = 0
-        self.playerx = int(SCREENWIDTH * 0.2)
+        self.playerx, self.playery = int(self.SCREENWIDTH * 0.2), self.movementInfo['playery']
 
-        baseShift = self.IMAGES['base'].get_width() - self.IMAGES['background'].get_width()
+        self.basex = self.movementInfo['basex']
+        self.baseShift = self.IMAGES['base'].get_width() - self.IMAGES['background'].get_width()
 
         # get 2 new pipes to add to upperPipes lowerPipes list
-        self.newPipe1 = getRandomPipe()
-        self.newPipe2 = getRandomPipe()
+        self.newPipe1 = self.getRandomPipe()
+        self.newPipe2 = self.getRandomPipe()
 
         # list of upper pipes
         self.upperPipes = [
@@ -136,28 +138,31 @@ class Env(object):
         self.pipeVelX = -4
 
         # player velocity, max velocity, downward accleration, accleration on flap
-        self.playerVelY    =  -9   # player's velocity along Y, default same as playerFlapped
-        self.playerMaxVelY =  10   # max vel along Y, max descend speed
-        self.playerMinVelY =  -8   # min vel along Y, max ascend speed
-        self.playerAccY    =   1   # players downward accleration
-        self.playerFlapAcc =  -9   # players speed on flapping
-        self.playerFlapped = False # True when player flaps
+        self.playerVelY = -9   # player's velocity along Y, default same as playerFlapped
+        self.playerMaxVelY = 10   # max vel along Y, max descend speed
+        self.playerMinVelY = -8   # min vel along Y, max ascend speed
+        self.playerAccY = 1   # players downward accleration
+        self.playerFlapAcc = -9   # players speed on flapping
+        self.playerFlapped = False  # True when player flaps
 
     def step(self, action):
+        if self.done:
+            print "Game end, please init game!"
+
         if action == 1:
             if self.playery > -2 * self.IMAGES['player'][0].get_height():
                 self.playerVelY = self.playerFlapAcc
                 self.playerFlapped = True
 
         crashTest = self.checkCrash(
-                                {
-                                    'x': self.playerx, 
-                                    'y': self.playery, 
-                                    'index': self.playerIndex
-                                },
-                                self.upperPipes, 
-                                self.lowerPipes
-                    )
+            {
+                'x': self.playerx,
+                'y': self.playery,
+                'index': self.playerIndex
+            },
+            self.upperPipes,
+            self.lowerPipes
+        )
         if crashTest[0]:
             self.done = True
             return 0, self.done
@@ -165,8 +170,56 @@ class Env(object):
         # playerIndex basex change
         if (self.loopIter + 1) % 3 == 0:
             self.playerIndex = self.movementInfo['playerIndexGen'].next()
-        loopIter = (loopIter + 1) % 30
-        basex = -((-basex + 100) % baseShift)
+        self.loopIter = (self.loopIter + 1) % 30
+        self.basex = -((-self.basex + 100) % self.baseShift)
+
+        # player's movement
+        if self.playerVelY < self.playerMaxVelY and not self.playerFlapped:
+            self.playerVelY += self.playerAccY
+        if self.playerFlapped:
+            self.playerFlapped = False
+        self.playerHeight = self.IMAGES['player'][self.playerIndex].get_height()
+        self.playery += min(self.playerVelY, self.BASEY - self.playery - self.playerHeight)
+
+        # move pipes to left
+        for uPipe, lPipe in zip(self.upperPipes, self.lowerPipes):
+            uPipe['x'] += self.pipeVelX
+            lPipe['x'] += self.pipeVelX
+
+        # add new pipe when first pipe is about to touch left of screen
+        if 0 < self.upperPipes[0]['x'] < 5:
+            newPipe = self.getRandomPipe()
+            self.upperPipes.append(newPipe[0])
+            self.lowerPipes.append(newPipe[1])
+
+        # remove first pipe if its out of the screen
+        if self.upperPipes[0]['x'] < -self.IMAGES['pipe'][0].get_width():
+            self.upperPipes.pop(0)
+            self.lowerPipes.pop(0)
+
+        # draw sprites
+        self.SCREEN.blit(self.IMAGES['background'], (0, 0))
+
+        for uPipe, lPipe in zip(self.upperPipes, self.lowerPipes):
+            self.SCREEN.blit(self.IMAGES['pipe'][0], (uPipe['x'], uPipe['y']))
+            self.SCREEN.blit(self.IMAGES['pipe'][1], (lPipe['x'], lPipe['y']))
+
+        self.SCREEN.blit(self.IMAGES['base'], (self.basex, self.BASEY))
+        # print score so player overlaps the score
+        self.SCREEN.blit(self.IMAGES['player'][self.playerIndex], (self.playerx, self.playery))
+
+        pygame.display.update()
+        return 1, False
+
+    def playerShm(self, playerShm):
+        """oscillates the value of playerShm['val'] between 8 and -8"""
+        if abs(playerShm['val']) == 8:
+            playerShm['dir'] *= -1
+
+        if playerShm['dir'] == 1:
+            playerShm['val'] += 1
+        else:
+            playerShm['val'] -= 1
 
     def getRandomPipe(self):
         """returns a randomly generated pipe"""
@@ -178,8 +231,59 @@ class Env(object):
 
         return [
             {'x': pipeX, 'y': gapY - pipeHeight},  # upper pipe
-            {'x': pipeX, 'y': gapY + PIPEGAPSIZE}, # lower pipe
+            {'x': pipeX, 'y': gapY + self.PIPEGAPSIZE},  # lower pipe
         ]
+
+    def checkCrash(self, player, upperPipes, lowerPipes):
+        """returns True if player collders with base or pipes."""
+        pi = player['index']
+        player['w'] = self.IMAGES['player'][0].get_width()
+        player['h'] = self.IMAGES['player'][0].get_height()
+
+        # if player crashes into ground
+        if player['y'] + player['h'] >= self.BASEY - 1:
+            return [True, True]
+        else:
+
+            playerRect = pygame.Rect(player['x'], player['y'],
+                                     player['w'], player['h'])
+            pipeW = self.IMAGES['pipe'][0].get_width()
+            pipeH = self.IMAGES['pipe'][0].get_height()
+
+            for uPipe, lPipe in zip(self.upperPipes, self.lowerPipes):
+                # upper and lower pipe rects
+                uPipeRect = pygame.Rect(uPipe['x'], uPipe['y'], pipeW, pipeH)
+                lPipeRect = pygame.Rect(lPipe['x'], lPipe['y'], pipeW, pipeH)
+
+                # player and upper/lower pipe hitmasks
+                pHitMask = self.HITMASKS['player'][pi]
+                uHitmask = self.HITMASKS['pipe'][0]
+                lHitmask = self.HITMASKS['pipe'][1]
+
+                # if bird collided with upipe or lpipe
+                uCollide = self.pixelCollision(playerRect, uPipeRect, pHitMask, uHitmask)
+                lCollide = self.pixelCollision(playerRect, lPipeRect, pHitMask, lHitmask)
+
+                if uCollide or lCollide:
+                    return [True, False]
+
+        return [False, False]
+
+    def pixelCollision(self, rect1, rect2, hitmask1, hitmask2):
+        """Checks if two objects collide and not just their rects"""
+        rect = rect1.clip(rect2)
+
+        if rect.width == 0 or rect.height == 0:
+            return False
+
+        x1, y1 = rect.x - rect1.x, rect.y - rect1.y
+        x2, y2 = rect.x - rect2.x, rect.y - rect2.y
+
+        for x in xrange(rect.width):
+            for y in xrange(rect.height):
+                if hitmask1[x1 + x][y1 + y] and hitmask2[x2 + x][y2 + y]:
+                    return True
+        return False
 
     def getHitmask(self, image):
         """returns a hitmask using an image's alpha."""
@@ -187,5 +291,13 @@ class Env(object):
         for x in range(image.get_width()):
             mask.append([])
             for y in range(image.get_height()):
-                mask[x].append(bool(image.get_at((x,y))[3]))
+                mask[x].append(bool(image.get_at((x, y))[3]))
         return mask
+
+if __name__ == '__main__':
+    env = Env()
+    while True:
+        reward, done = env.step(0)
+        print reward
+        if done:
+            break
