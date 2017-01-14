@@ -34,27 +34,10 @@ class Env(object):
         # list of pipes
         self.PIPES = 'assets/sprites/pipe-green.png'
 
-        # if game end
-        self.done = False
-
         pygame.init()
         self.FPSCLOCK = pygame.time.Clock()
         self.SCREEN = pygame.display.set_mode((self.SCREENWIDTH, self.SCREENHEIGHT))
         pygame.display.set_caption('Flappy Bird')
-
-        # numbers sprites for score display
-        self.IMAGES['numbers'] = (
-            pygame.image.load('assets/sprites/0.png').convert_alpha(),
-            pygame.image.load('assets/sprites/1.png').convert_alpha(),
-            pygame.image.load('assets/sprites/2.png').convert_alpha(),
-            pygame.image.load('assets/sprites/3.png').convert_alpha(),
-            pygame.image.load('assets/sprites/4.png').convert_alpha(),
-            pygame.image.load('assets/sprites/5.png').convert_alpha(),
-            pygame.image.load('assets/sprites/6.png').convert_alpha(),
-            pygame.image.load('assets/sprites/7.png').convert_alpha(),
-            pygame.image.load('assets/sprites/8.png').convert_alpha(),
-            pygame.image.load('assets/sprites/9.png').convert_alpha()
-        )
 
         # game over sprite
         self.IMAGES['gameover'] = pygame.image.load('assets/sprites/gameover.png').convert_alpha()
@@ -97,6 +80,8 @@ class Env(object):
     def init_game(self):
         """Shows welcome screen animation of flappy bird"""
         # index of player to blit on screen
+        self.done = False
+
         playerIndexGen = cycle([0, 1, 2, 1])
         # iterator used to change playerIndex after every 5th iteration
 
@@ -146,6 +131,18 @@ class Env(object):
         self.playerFlapped = False  # True when player flaps
 
     def step(self, action):
+        ret_val, done = self.one_iter(action)
+        if done:
+            return ret_val, done
+        for i in xrange(0, 5):
+            ret_val, done = self.one_iter(0)
+            if done:
+                return ret_val, done
+        pygame.display.update()
+        pygame.image.save(self.SCREEN, "screenshot.png")
+        return ret_val, done
+
+    def one_iter(self, action):
         if self.done:
             print "Game end, please init game!"
 
@@ -208,7 +205,6 @@ class Env(object):
         # print score so player overlaps the score
         self.SCREEN.blit(self.IMAGES['player'][self.playerIndex], (self.playerx, self.playery))
 
-        pygame.display.update()
         return 1, False
 
     def playerShm(self, playerShm):
@@ -296,8 +292,13 @@ class Env(object):
 
 if __name__ == '__main__':
     env = Env()
-    while True:
-        reward, done = env.step(0)
+    done = False
+    while not done:
+        reward, done = env.step(1)
         print reward
-        if done:
-            break
+    print 'fuck'
+    env.init_game()
+    done = False
+    while not done:
+        reward, done = env.step(1)
+        print reward
