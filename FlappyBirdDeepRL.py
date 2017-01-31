@@ -20,18 +20,17 @@ from Memery import Memery
 from DQN_Flappy_Bird import DQN_Flappy_Bird
 
 # Import function
-from RLToolbox.epsilon_greedy_action_select import epsilon_greedy_action_select
-from RLToolbox.train_network import train_network
+from RLToolbox.Components import epsilon_greedy_action_select, train_network, image_pre_process
 
 
 NUM_EPISODE = 1000000
 BATCH_SIZE = 128
-MEMERY_SIZE = 1000000
+MEMERY_LIMIT = 1000000
 FRAME_SETS_SIZE = 4
 
 env = FlappyBirdEnv()
 
-D = Memery(MEMERY_SIZE, FRAME_SETS_SIZE)
+D = Memery(MEMERY_LIMIT, FRAME_SETS_SIZE)
 
 DQN_Q_approximator = DQN_Flappy_Bird()
 
@@ -39,6 +38,8 @@ DQN_Q_approximator.check_weights()  # check if pre-trained weights exists
 
 for num_episode in xrange(NUM_EPISODE):
     frame_sets = env.init_game()
+    frame_sets = image_pre_process(frame_sets)
+
     done = False
 
     while not done:
@@ -47,6 +48,7 @@ for num_episode in xrange(NUM_EPISODE):
             frame_sets
         )
         frame_sets_next, reward, done = env.step(action)
+        frame_sets_next = image_pre_process(frame_sets_next)
 
         D.add((frame_sets, action, reward, frame_sets_next))
 
