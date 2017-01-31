@@ -14,26 +14,28 @@
 #         Perform a gradient step on (y_j-Q(s_j,a_j; θ_i))^2 with respect to θ
 #     end for
 # end for
+# Import modules
 from FlappyBirdToolbox.FlappyBirdEnv import FlappyBirdEnv
 from Memery import Memery
 from DQN_Flappy_Bird import DQN_Flappy_Bird
+
+# Import function
 from RLToolbox.epsilon_greedy_action_select import epsilon_greedy_action_select
-
-
-def train_network(deep_Q_network, batch):
-    pass
+from RLToolbox.train_network import train_network
 
 
 NUM_EPISODE = 1000000
-Batch_SIZE = 128
+BATCH_SIZE = 128
+MEMERY_SIZE = 1000000
+FRAME_SETS_SIZE = 4
 
 env = FlappyBirdEnv()
 
-D = Memery()
+D = Memery(MEMERY_SIZE, FRAME_SETS_SIZE)
 
 DQN_Q_approximator = DQN_Flappy_Bird()
 
-DQN_Q_approximator.checkout()
+DQN_Q_approximator.check_weights()  # check if pre-trained weights exists
 
 for num_episode in xrange(NUM_EPISODE):
     frame_sets = env.init_game()
@@ -48,6 +50,9 @@ for num_episode in xrange(NUM_EPISODE):
 
         D.add((frame_sets, action, reward, frame_sets_next))
 
-        batch = D.sample(Batch_SIZE)
+        batch = D.sample(BATCH_SIZE)
 
         train_network(DQN_Q_approximator, batch)
+
+    if 0 == num_episode % 10000:
+        DQN_Q_approximator.save_weights()
