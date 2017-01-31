@@ -55,4 +55,4 @@ for num_episode in xrange(NUM_EPISODE):
         train_network(DQN_Q_approximator, batch)
 
     if 0 == num_episode % 10000:
-        DQN_Q_approximator.save_weights()
+        DQN_Q_approximator.save_weights()  # save weights

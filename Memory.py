@@ -1,4 +1,6 @@
 __author__ = 'Zhiwei'
+from copy import deepcopy
+import random as rd
 
 
 class Memory(object):
@@ -38,6 +40,7 @@ class Memory(object):
 
     def __if_element_legal(self, element):
         pass
+
 
 if __name__ == '__main__':
     import numpy as np
