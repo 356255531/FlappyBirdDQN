@@ -18,34 +18,81 @@ class DQN_Flappy_Bird(object):
         self.depth = depth
         self.image_size = image_size
 
+        self.create_network()
         self.graph = tf.Graph()
         self.graph.as_default()
         self.sess = tf.Session(graph=self.graph)
         self.init_parameter()
 
-    def gen_weights_var(self, shape):
-        inital = tf.truncated_normal(shape, stddev=0.01)
-        return tf.Variable(inital)
-
-    def gen_bias_var(self, shape):
-        inital = tf.constant(0.01, shape=shape)
-        return tf.Variable(inital)
-
     def create_network(self):
+        def gen_weights_var(shape):
+            inital = tf.truncated_normal(shape, stddev=0.01)
+            return tf.Variable(inital)
+
+        def gen_bias_var(shape):
+            inital = tf.constant(0.01, shape=shape)
+            return tf.Variable(inital)
+
+        def connect_conv2d(input, weights, stride):
+            return tf.nn.conv2d(
+                input,
+                input,
+                [1, stride, stride, 1],
+                padding='SAME',
+                use_cudnn_on_gpu=True
+            )
+
+        def connect_activ_relu(input, bias):
+            return tf.nn.relu(input + bias)
+
+        def connect_max_pool_2x2(intput):
+            return tf.nn.max_pool(input, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding="SAME")
+
         # 1st conv layer filter parameter
-        weights_conv_1 = self.gen_weights_var([8, 8, 4, 32])
-        # 1st conv layer Activation bias
-        bias_activ_conv_1 = self.gen_bias_var([32])
+        weights_conv_1 = gen_weights_var([8, 8, 4, 32])
+        bias_activ_conv_1 = gen_bias_var([32])
 
         # 2nd conv layer filter parameter
-        weights_conv_2 = self.gen_weights_var([4, 4, 32, 64])
-        # 2nd conv layer activation bias
-        bias_activ_conv_2 = self.gen_bias_var([64])
+        weights_conv_2 = gen_weights_var([4, 4, 32, 64])
+        bias_activ_conv_2 = gen_bias_var([64])
 
         # 3rd conv layer filter parameter
-        weights_conv_3 = self.gen_weights_var([3, 3, 64, 64])
-        # 3rd conv layer activation bias
-        bias_activ_conv_3 = self.gen_bias_var([64])
+        weights_conv_3 = gen_weights_var([3, 3, 64, 64])
+        bias_activ_conv_3 = gen_bias_var([64])
+
+        # 4th fully connect net parameter
+        weights_fc_layer_4 = gen_weights_var([1600, 512])
+        bias_fc_layer_4 = gen_bias_var([512])
+
+        # 5th fully connect net parameter
+        weights_fc_layer_5 = gen_weights_var([512, 2])
+        bias_fc_layer_5 = gen_bias_var([2])
+
+        # input layer
+        input_layer = tf.placeholder("float", [None, 80, 80, 4])
+
+        # Convo layer 1
+        output_conv_lay_1 = connect_conv2d(input_layer, weights_conv_1, 4)
+        output_active_con_lay_1 = connect_activ_relu(output_conv_lay_1, bias_activ_conv_1)
+        output_max_pool_layer_1 = connect_max_pool_2x2(output_active_con_lay_1)
+
+        # Convo layer 2
+        output_conv_lay_2 = connect_conv2d(output_max_pool_layer_1, weights_conv_2, 2)
+        output_active_con_lay_2 = connect_activ_relu(output_conv_lay_2, bias_activ_conv_2)
+
+        # Convo layer 3
+        output_conv_lay_3 = connect_conv2d(output_active_con_lay_2, weights_conv_3, 1)
+        output_active_con_lay_3 = connect_activ_relu(output_conv_lay_3, bias_activ_conv_3)
+        output_reshape_layer_3 = tf.reshape(output_active_con_lay_3, [-1, 1600])  # Convo layer 3 reshape to fully connected net
+
+        # Fully connect layer 4
+        output_fc_layer_4 = tf.matmul(output_reshape_layer_3, weights_fc_layer_4)
+        output_active_fc_layer_4 = connect_activ_relu(output_fc_layer_4, bias_fc_layer_4)
+
+        # Output layer
+        output = tf.matmul(output_active_fc_layer_4, weights_fc_layer_5) + bias_fc_layer_5
+
+        return input_layer, output
 
     def save_weights(self, saver, saved_directory="saved_weights", num_episode):
         saver.save(self.sess, saved_directory + "dqn_weights", global_step=num_episode)
@@ -58,151 +105,5 @@ class DQN_Flappy_Bird(object):
         else:
             print("Could not find pre-trained network weights")
 
-    def forward_propagate(self):
+    def predict(self):
         pass
-
-    def function():
-        pass
-
-    def init_parameter(self):
-        # Conv Layer 1
-        self.layer_1_conv_filter = tf.Variable(tf.truncated_normal(
-            [self.patch_size[0],
-             self.patch_size[0],
-             4,  # Number of Channel
-             self.num_conv_kern_conv_layer[0]
-             ],
-            stddev=0.1
-        ))
-        self.layer_1_conv_biases = tf.Variable(tf.zeros(
-            [4 * self.num_conv_kern_conv_layer[0]]
-        ))
-
-        # Conv Layer 2
-        num_channels = 4 * self.num_conv_kern_conv_layer[0]
-        self.layer_2_conv_filter = tf.Variable(tf.truncated_normal(
-            [self.patch_size[1],
-             self.patch_size[1],
-             num_channels,
-             self.num_conv_kern_conv_layer[1]
-             ],
-            stddev=0.1
-        ))
-        self.layer_2_conv_biases = tf.Variable(tf.constant(1.0, shape=[
-            num_channels * self.num_conv_kern_conv_layer[1]
-        ]))
-
-        # Conv Layer 3
-        num_channels *= self.num_conv_kern_conv_layer[1]
-        self.layer_3_conv_filter = tf.Variable(tf.truncated_normal(
-            [self.patch_size[2],
-             self.patch_size[2],
-             num_channels,
-             self.num_conv_kern_conv_layer[2]
-             ],
-            stddev=0.1
-        ))
-        self.layer_3_conv_biases = tf.Variable(tf.constant(1.0, shape=[
-            num_channels * self.num_conv_kern_conv_layer[2]
-        ]))
-
-        # full connect hiden layer
-        num_channels *= self.num_conv_kern_conv_layer[2]
-        self.layer_4_hidden_weights = tf.Variable(tf.truncated_normal(
-            [(self.image_size // 4) * (self.image_size // 4) * num_channels, self.num_hidden], stddev=0.1))
-        self.layer_4_biases = tf.Variable(tf.constant(1.0, shape=[self.num_hidden]))
-
-        # matrix multilpication
-        self.layer_4_weights = tf.Variable(tf.truncated_normal(
-            [self.num_hidden, self.num_actions], stddev=0.1))
-        self.layer_4_biases = tf.Variable(tf.constant(1.0, shape=[self.num_actions]))
-
-    def mode(self, frame_4):
-        # calculate the 1st conv layer output
-        layer_1_conv_output = tf.nn.conv2d(
-            frame_4,
-            self.layer_1_conv_filter,
-            [1, self.conv_stride[0], self.conv_stride[0], 1],
-            padding='SAME',
-            use_cudnn_on_gpu=True
-        )
-        max_pooling_1_output = tf.nn.max_pool(
-            layer_1_conv_output,
-            [1, self.max_pool_kernel_size[0], self.max_pool_kernel_size[0], 1],
-            [1, self.max_pool_stride[0], self.max_pool_stride[0], 1],
-            padding='SAME'
-        )
-        layer_1_output = tf.nn.relu(max_pooling_1_output + self.layer_1_conv_biases)
-
-        # calculate the 2nd conv layer output
-        layer_2_conv_output = tf.nn.conv2d(
-            layer_1_output,
-            self.layer_2_conv_filter,
-            [1, self.conv_stride[0], self.conv_stride[0], 1],
-            padding='SAME',
-            use_cudnn_on_gpu=True
-        )
-        max_pooling_2_output = tf.nn.max_pool(
-            layer_2_conv_output,
-            [1, self.max_pool_kernel_size[1], self.max_pool_kernel_size[1], 1],
-            [1, self.max_pool_stride[1], self.max_pool_stride[1], 1],
-            padding='SAME'
-        )
-
-        # calculate the 3rd conv layer output
-        layer_3_conv_output = tf.nn.conv2d(
-            layer_2_output,
-            self.layer_2_conv_filter,
-            [1, self.conv_stride[0], self.conv_stride[0], 1],
-            padding='SAME',
-            use_cudnn_on_gpu=True
-        )
-        max_pooling_2_output = tf.nn.max_pool(
-            layer_2_conv_output,
-            [1, self.max_pool_kernel_size[1], self.max_pool_kernel_size[1], 1],
-            [1, self.max_pool_stride[1], self.max_pool_stride[1], 1],
-            padding='SAME'
-        )
-
-        layer_2_output = tf.nn.relu(max_pooling_2_output + layer_2_conv_biases)
-        shape = layer_2_output.get_shape().as_list()
-        reshape = tf.reshape(layer_2_output, [shape[0], shape[1] * shape[2] * shape[3]])
-        layer_3_output = tf.nn.relu(tf.matmul(reshape, layer_3_weights) + layer_3_biases)
-        return tf.matmul(layer_3_output, layer_4_weights) + layer_4_biases
-
-    def predict(self, frame_4):
-        return self.model(frame_4)
-
-    def model(self, frame_4):
-        layer_1_conv_output = tf.nn.conv2d(
-            data,
-            layer_1_conv_filter,
-            [1, 1, 1, 1],
-            padding='SAME',
-            use_cudnn_on_gpu=True
-        )
-        max_pooling_1_output = tf.nn.max_pool(
-            layer_1_conv_output,
-            [1, max_pool_kernel_size, max_pool_kernel_size, 1],
-            [1, max_pool_stride, max_pool_stride, 1],
-            padding='SAME'
-        )
-        layer_1_output = tf.nn.relu(max_pooling_1_output + layer_1_conv_biases)
-        layer_2_conv_output = tf.nn.conv2d(
-            layer_1_output,
-            layer_2_conv_filter,
-            [1, 1, 1, 1],
-            padding='SAME',
-            use_cudnn_on_gpu=True
-        )
-        max_pooling_2_output = tf.nn.max_pool(
-            layer_2_conv_output,
-            [1, max_pool_kernel_size, max_pool_kernel_size, 1],
-            [1, max_pool_stride, max_pool_stride, 1],
-            padding='SAME'
-        )
-        layer_2_output = tf.nn.relu(max_pooling_2_output + layer_2_conv_biases)
-        shape = layer_2_output.get_shape().as_list()
-        reshape = tf.reshape(layer_2_output, [shape[0], shape[1] * shape[2] * shape[3]])
-        layer_3_output = tf.nn.relu(tf.matmul(reshape, layer_3_weights) + layer_3_biases)
-        return tf.matmul(layer_3_output, layer_4_weights) + layer_4_biases
