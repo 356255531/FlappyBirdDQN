@@ -61,7 +61,9 @@ def main():
 
             batch = D.sample(BATCH_SIZE)
 
-            train_network(DQN_Q_approximator, batch, discount_facotr, epsilon)
+            DQN_Q_approximator.train_network(
+                batch, discount_facotr, epsilon
+            )
 
         if 0 == num_episode % 10000:
             DQN_Q_approximator.save_weights()  # save weights

@@ -1,28 +1,28 @@
 import tensorflow as tf
+import numpy as np
 
 
 class DQN_Flappy_Bird(object):
     """docstring for DQN_Flappy_Bird"""
 
-    def __init__(self,
-                 batch_size,
-                 patch_size,
-                 num_channels,
-                 depth,
-                 image_size
-                 ):
+    def __init__(self, nn_learning_rate):
         super(DQN_Flappy_Bird, self).__init__()
-        self.patch_size = patch_size
-        self.batch_size = batch_size
-        self.num_channels = num_channels
-        self.depth = depth
-        self.image_size = image_size
+        self.input, self.output = self.create_network()
+        self.label = tf.placeholder(tf.float32, shape=)
 
-        self.create_network()
-        self.graph = tf.Graph()
-        self.graph.as_default()
-        self.sess = tf.Session(graph=self.graph)
-        self.init_parameter()
+        self.cost = tf.reduce_mean(
+            tf.nn.softmax_cross_entropy_with_logits(
+                logits=self.input, labels=self.label
+            )
+        )
+
+        self.optimizer = tf.train.AdamOptimizer(nn_learning_rate).minimize(self.cost)
+
+        self.sess = tf.Session()
+        self.sess.run(tf.initialize_all_variables())
+
+    def __del__(self):
+        self.sess.close()
 
     def create_network(self):
         def gen_weights_var(shape):
@@ -105,5 +105,26 @@ class DQN_Flappy_Bird(object):
         else:
             print("Could not find pre-trained network weights")
 
-    def predict(self):
+    def batch_parser(self):
         pass
+
+    def batch_parser(self, batch):
+        pass
+
+    def train_network(self, batch, discount_factor, epsilon):
+        # parse the batch input
+        batch_input_frames, batch_input_label = self.batch_parser(batch)
+
+        # train network
+        self.sess.run(optimizer, feed_dict={
+            self.input: batch_input_frames
+        })
+
+    def greedy_action_selection(self, frames):
+        return np.argmax(self.sess(self.output, feed_dict={self.input=frames}))
+
+    def epsilon_greedy_action_selection(self, frames, epsilon):
+        if rd.sample() < epsilon:
+            return rd.sample([0, 1])
+
+        return self.greedy_action_selection(frames)
