@@ -23,6 +23,47 @@ class DQN_Flappy_Bird(object):
         self.sess = tf.Session(graph=self.graph)
         self.init_parameter()
 
+    def gen_weights_var(self, shape):
+        inital = tf.truncated_normal(shape, stddev=0.01)
+        return tf.Variable(inital)
+
+    def gen_bias_var(self, shape):
+        inital = tf.constant(0.01, shape=shape)
+        return tf.Variable(inital)
+
+    def create_network(self):
+        # 1st conv layer filter parameter
+        weights_conv_1 = self.gen_weights_var([8, 8, 4, 32])
+        # 1st conv layer Activation bias
+        bias_activ_conv_1 = self.gen_bias_var([32])
+
+        # 2nd conv layer filter parameter
+        weights_conv_2 = self.gen_weights_var([4, 4, 32, 64])
+        # 2nd conv layer activation bias
+        bias_activ_conv_2 = self.gen_bias_var([64])
+
+        # 3rd conv layer filter parameter
+        weights_conv_3 = self.gen_weights_var([3, 3, 64, 64])
+        # 3rd conv layer activation bias
+        bias_activ_conv_3 = self.gen_bias_var([64])
+
+    def save_weights(self, saver, saved_directory="saved_weights", num_episode):
+        saver.save(self.sess, saved_directory + "dqn_weights", global_step=num_episode)
+
+    def load_weights(self, saver, saved_directory="saved_weights"):
+        checkpoint = tf.train.get_checkpoint_state(saved_directory)
+        if checkpoint and checkpoint.model_checkpoint_path:
+            saver.restore(self.sess, checkpoint.model_checkpoint_path)
+            print("Weights successfully loaded:", checkpoint.model_checkpoint_path)
+        else:
+            print("Could not find pre-trained network weights")
+
+    def forward_propagate(self):
+        pass
+
+    def function():
+        pass
+
     def init_parameter(self):
         # Conv Layer 1
         self.layer_1_conv_filter = tf.Variable(tf.truncated_normal(

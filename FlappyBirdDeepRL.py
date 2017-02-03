@@ -15,46 +15,57 @@
 #     end for
 # end for
 # Import modules
-from FlappyBirdToolbox.FlappyBirdEnv import FlappyBirdEnv
-from Memery import Memery
-from DQN_Flappy_Bird import DQN_Flappy_Bird
+from FlappyBirdToolbox import FlappyBirdEnv
+from Components import Memery, DQN_Flappy_Bird
 
 # Import function
 from RLToolbox.Components import epsilon_greedy_action_select, train_network, image_pre_process
 
-
+# Training set up
 NUM_EPISODE = 1000000
-BATCH_SIZE = 128
-MEMERY_LIMIT = 1000000
+BATCH_SIZE = 32
+MEMERY_LIMIT = 50000
 FRAME_SETS_SIZE = 4
 
-env = FlappyBirdEnv()
+# RL parameters
+discount_facotr = 0.99
+epsilon_start = 0.1
+epsilon_final = 0.0001
 
-D = Memery(MEMERY_LIMIT, FRAME_SETS_SIZE)
 
-DQN_Q_approximator = DQN_Flappy_Bird()
+def main():
+    env = FlappyBirdEnv()
 
-DQN_Q_approximator.check_weights()  # check if pre-trained weights exists
+    D = Memery(MEMERY_LIMIT, FRAME_SETS_SIZE)
 
-for num_episode in xrange(NUM_EPISODE):
-    frame_sets = env.init_game()
-    frame_sets = image_pre_process(frame_sets)
+    DQN_Q_approximator = DQN_Flappy_Bird()
 
-    done = False
+    DQN_Q_approximator.check_weights()  # check if pre-trained weights exists
 
-    while not done:
-        action = epsilon_greedy_action_select(
-            DQN_Q_approximator,
-            frame_sets
-        )
-        frame_sets_next, reward, done = env.step(action)
-        frame_sets_next = image_pre_process(frame_sets_next)
+    for num_episode in xrange(NUM_EPISODE):  # Q-Learning framework
+        frame_sets = env.init_game()
+        frame_sets = image_pre_process(frame_sets)
 
-        D.add((frame_sets, action, reward, frame_sets_next))
+        done = False
 
-        batch = D.sample(BATCH_SIZE)
+        epsilon = epsilon_final - (epsilon_start - epsilon_final) / (num_episode * 100.0)
+        while not done:
+            action = epsilon_greedy_action_select(
+                DQN_Q_approximator,
+                frame_sets
+            )
+            frame_sets_next, reward, done = env.step(action)
+            frame_sets_next = image_pre_process(frame_sets_next)
 
-        train_network(DQN_Q_approximator, batch)
+            D.add((frame_sets, action, reward, frame_sets_next))
 
-    if 0 == num_episode % 10000:
-        DQN_Q_approximator.save_weights()  # save weights
+            batch = D.sample(BATCH_SIZE)
+
+            train_network(DQN_Q_approximator, batch, discount_facotr, epsilon)
+
+        if 0 == num_episode % 10000:
+            DQN_Q_approximator.save_weights()  # save weights
+
+
+if __name__ == '__main__':
+    main()
