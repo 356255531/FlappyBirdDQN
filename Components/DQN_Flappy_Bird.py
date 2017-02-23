@@ -10,6 +10,8 @@ class DQN_Flappy_Bird(object):
         self.input, self.output = self.create_network()
         self.label = tf.placeholder(tf.float32, shape=)
 
+        self.saver = self.tf.Saver(max_to_keep=5, keep_checkpoint_every_n_hours=1)
+
         self.cost = tf.reduce_mean(
             tf.nn.softmax_cross_entropy_with_logits(
                 logits=self.input, labels=self.label
@@ -94,13 +96,13 @@ class DQN_Flappy_Bird(object):
 
         return input_layer, output
 
-    def save_weights(self, saver, saved_directory="saved_weights", num_episode):
-        saver.save(self.sess, saved_directory + "dqn_weights", global_step=num_episode)
+    def save_weights(self, num_episode, saved_directory="./saved_weights"):
+        self.saver.save(self.sess, saved_directory, global_step=num_episode)
 
-    def load_weights(self, saver, saved_directory="saved_weights"):
+    def load_weights(self, saved_directory="./saved_weights"):
         checkpoint = tf.train.get_checkpoint_state(saved_directory)
         if checkpoint and checkpoint.model_checkpoint_path:
-            saver.restore(self.sess, checkpoint.model_checkpoint_path)
+            self.saver.restore(self.sess, checkpoint.model_checkpoint_path)
             print("Weights successfully loaded:", checkpoint.model_checkpoint_path)
         else:
             print("Could not find pre-trained network weights")

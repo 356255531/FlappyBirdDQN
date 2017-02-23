@@ -1,6 +1,7 @@
-__author__ = 'Zhiwei'
-from copy import deepcopy
 import random as rd
+from collections import deque
+
+__author__ = 'Zhiwei'
 
 
 class Memory(object):
@@ -17,32 +18,41 @@ class Memory(object):
         self.memory_limit = memory_limit
         self.frame_sets_size = frame_sets_size
 
-        self.memory = []
+        self.memory = deque()
         self.size = 0
 
     def add(self, element):
         if not self.__if_element_legal(element):
             print 'Add failed'
             return
+
         if self.size >= self.memory_limit:
-            self.memory.pop()
+            self.memory.popleft()
             self.size -= 1
+
         self.memory.append(element)
         self.size += 1
 
     def sample(self, size):
-        if size == 0:
+        if size <= 0:
+            raise ValueError("sample return empty list")
             return []
-        if size > self.size:
-            return deepcopy(self.memory)
-        ret_batch = [deepcopy(self.memory[i]) for i in rd.sample(xrange(self.size), size)]
-        return ret_batch
+
+        if size >= self.size:
+            return list(self.memory)
+
+        return rd.sample(self.memory, size)
 
     def __if_element_legal(self, element):
-        pass
+        return True
 
 
 if __name__ == '__main__':
     import numpy as np
     a = np.empty((2, 3, 5))
-    print len(a.shape)
+    D = Memory(2, 3)
+    D.add(a)
+    D.add(a)
+    D.add(a)
+    print D.sample(1)
+    print len(D.memory)

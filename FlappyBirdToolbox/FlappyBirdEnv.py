@@ -1,16 +1,19 @@
 from itertools import cycle
 import random
-import sys
 
 import pygame
 from pygame.locals import *
 
 
-class Env(object):
-    """docstring for Env"""
+class FlappyBirdEnv(object):
+    """
+    Member function:
+        init_game(preprocess=False):
+            return the initial state (n frames here n = 4)
+    """
 
-    def __init__(self):
-        super(Env, self).__init__()
+    def __init__(self, rel_path=''):
+        super(FlappyBirdEnv, self).__init__()
 
         self.FPS = 30
         self.SCREENWIDTH = 288
@@ -23,16 +26,16 @@ class Env(object):
 
         # list of all possible players (tuple of 3 positions of flap)
         self.PLAYERS = (
-            'assets/sprites/redbird-upflap.png',
-            'assets/sprites/redbird-midflap.png',
-            'assets/sprites/redbird-downflap.png'
+            rel_path + 'assets/sprites/redbird-upflap.png',
+            rel_path + 'assets/sprites/redbird-midflap.png',
+            rel_path + 'assets/sprites/redbird-downflap.png'
         )
 
         # list of backgrounds
-        self.BACKGROUNDS = 'assets/sprites/background-day.png'
+        self.BACKGROUNDS = rel_path + 'assets/sprites/background-day.png'
 
         # list of pipes
-        self.PIPES = 'assets/sprites/pipe-green.png'
+        self.PIPES = rel_path + 'assets/sprites/pipe-green.png'
 
         pygame.init()
         self.FPSCLOCK = pygame.time.Clock()
@@ -40,11 +43,11 @@ class Env(object):
         pygame.display.set_caption('Flappy Bird')
 
         # game over sprite
-        self.IMAGES['gameover'] = pygame.image.load('assets/sprites/gameover.png').convert_alpha()
+        self.IMAGES['gameover'] = pygame.image.load(rel_path + 'assets/sprites/gameover.png').convert_alpha()
         # message sprite for welcome screen
-        self.IMAGES['message'] = pygame.image.load('assets/sprites/message.png').convert_alpha()
+        self.IMAGES['message'] = pygame.image.load(rel_path + 'assets/sprites/message.png').convert_alpha()
         # base (ground) sprite
-        self.IMAGES['base'] = pygame.image.load('assets/sprites/base.png').convert_alpha()
+        self.IMAGES['base'] = pygame.image.load(rel_path + 'assets/sprites/base.png').convert_alpha()
 
         self.IMAGES['background'] = pygame.image.load(self.BACKGROUNDS).convert()
 
@@ -76,6 +79,9 @@ class Env(object):
         )
 
         self.init_game()
+
+    def image_preprocess(self, image):
+        pass
 
     def init_game(self):
         """Shows welcome screen animation of flappy bird"""
@@ -138,9 +144,23 @@ class Env(object):
             ret_val, done = self.one_iter(0)
             if done:
                 return ret_val, done
-        pygame.display.update()
-        pygame.image.save(self.SCREEN, "screenshot.png")
+
+        self.draw_frame_update()
+
         return ret_val, done
+
+    def draw_frame_update(self):
+        # draw sprites
+        self.SCREEN.blit(self.IMAGES['background'], (0, 0))
+
+        for uPipe, lPipe in zip(self.upperPipes, self.lowerPipes):
+            self.SCREEN.blit(self.IMAGES['pipe'][0], (uPipe['x'], uPipe['y']))
+            self.SCREEN.blit(self.IMAGES['pipe'][1], (lPipe['x'], lPipe['y']))
+
+        self.SCREEN.blit(self.IMAGES['base'], (self.basex, self.BASEY))
+        # print score so player overlaps the score
+        self.SCREEN.blit(self.IMAGES['player'][self.playerIndex], (self.playerx, self.playery))
+        pygame.display.update()
 
     def one_iter(self, action):
         if self.done:
@@ -193,17 +213,6 @@ class Env(object):
         if self.upperPipes[0]['x'] < -self.IMAGES['pipe'][0].get_width():
             self.upperPipes.pop(0)
             self.lowerPipes.pop(0)
-
-        # draw sprites
-        self.SCREEN.blit(self.IMAGES['background'], (0, 0))
-
-        for uPipe, lPipe in zip(self.upperPipes, self.lowerPipes):
-            self.SCREEN.blit(self.IMAGES['pipe'][0], (uPipe['x'], uPipe['y']))
-            self.SCREEN.blit(self.IMAGES['pipe'][1], (lPipe['x'], lPipe['y']))
-
-        self.SCREEN.blit(self.IMAGES['base'], (self.basex, self.BASEY))
-        # print score so player overlaps the score
-        self.SCREEN.blit(self.IMAGES['player'][self.playerIndex], (self.playerx, self.playery))
 
         return 1, False
 
@@ -290,15 +299,16 @@ class Env(object):
                 mask[x].append(bool(image.get_at((x, y))[3]))
         return mask
 
+
 if __name__ == '__main__':
-    env = Env()
+    env = FlappyBirdEnv()
     done = False
     while not done:
-        reward, done = env.step(1)
+        reward, done = env.step(0)
         print reward
     print 'fuck'
     env.init_game()
     done = False
     while not done:
-        reward, done = env.step(1)
+        reward, done = env.step(0)
         print reward

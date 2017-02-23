@@ -4,7 +4,7 @@ import sys
 
 import pygame
 from pygame.locals import *
-
+import numpy as np
 
 FPS = 30
 SCREENWIDTH  = 288
@@ -112,7 +112,12 @@ def init_gam():
         'playerIndexGen': playerIndexGen,
     }
 
+
 def mainGame(movementInfo):
+    """
+    usage: play the game
+    variable: x, y, z
+    """
     score = playerIndex = loopIter = 0
     playerIndexGen = movementInfo['playerIndexGen']
     playerx, playery = int(SCREENWIDTH * 0.2), movementInfo['playery']
