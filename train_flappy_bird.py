@@ -19,9 +19,13 @@ epsilon = epsilon_start
 
 
 def main():
-    env = FlappyBirdEnv()
-
-    D = Memery(MEMERY_LIMIT, FRAME_SETS_SIZE)
+    env = FlappyBirdEnv('FlappyBirdToolbox/', mode='train')
+    while 1:
+        env.init_game()
+        done = False
+        while not done:
+            _, _, done = env.step(1)
+    # D = Memery(MEMERY_LIMIT, FRAME_SETS_SIZE)
 
     # DQN_Q_approximator = DQN_Flappy_Bird()
 
@@ -41,7 +45,7 @@ def main():
 
     #         batch = D.sample(BATCH_SIZE)
 
-    #         train_network(DQN_Q_approximator, batch, discount_facotr, epsilon)
+    #         train_ne2twork(DQN_Q_approximator, batch, discount_facotr, epsilon)
 
     #     if 0 == num_episode % 10000:
     #         DQN_Q_approximator.save_weights()  # save weights

@@ -7,15 +7,24 @@ from pygame.locals import *
 
 class FlappyBirdEnv(object):
     """
-    Member function:
+    The flappy bird simulator for DRL algorithm
+    API:
         init_game(preprocess=False):
-            return the initial state (n frames here n = 4)
+            Reset game to initial state (if perform learning)
+            return: the initial state (n frames here n = 4)
+
+        step()
     """
 
-    def __init__(self, rel_path=''):
+    def __init__(self, rel_path='', frame_set_size=4, mode='play'):
         super(FlappyBirdEnv, self).__init__()
 
-        self.FPS = 30
+        self.frame_set_size = frame_set_size
+
+        if mode == 'play':
+            self.FPS = 30
+        else:
+            self.FPS = 3000
         self.SCREENWIDTH = 288
         self.SCREENHEIGHT = 512
         # amount by which base can maximum shift to left
@@ -78,16 +87,28 @@ class FlappyBirdEnv(object):
             self.getHitmask(self.IMAGES['player'][2]),
         )
 
-        self.init_game()
+    def get_frame_set(self):
+        if self.done:
+            frame_set = [pygame.surfarray.array2d(
+                pygame.display.get_surface()).T] * self.frame_set_size
+            return frame_set
 
-    def image_preprocess(self, image):
-        pass
+        frame_set = []
+        for x in xrange(4):
+            frame = pygame.surfarray.array2d(
+                pygame.display.get_surface()).T
+            frame_set.append(frame)
+            self.one_iter(0)
+        return frame_set
 
     def init_game(self):
-        """Shows welcome screen animation of flappy bird"""
-        # index of player to blit on screen
+        """
+        Init the game and render the start frames
+        return: initial frame set
+        """
         self.done = False
 
+        # index of player to blit on screen
         playerIndexGen = cycle([0, 1, 2, 1])
         # iterator used to change playerIndex after every 5th iteration
 
@@ -136,18 +157,22 @@ class FlappyBirdEnv(object):
         self.playerFlapAcc = -9   # players speed on flapping
         self.playerFlapped = False  # True when player flaps
 
-    def step(self, action):
-        ret_val, done = self.one_iter(action)
-        if done:
-            return ret_val, done
-        for i in xrange(0, 5):
-            ret_val, done = self.one_iter(0)
-            if done:
-                return ret_val, done
-
         self.draw_frame_update()
+        frame_set = self.get_frame_set()
+        return frame_set
 
-        return ret_val, done
+    def step(self, action):
+        self.one_iter(action)
+
+        frame_set = self.get_frame_set()
+
+        if self.done:
+            reward = 0
+            print 'Game over please initialize'
+        else:
+            reward = 1
+
+        return frame_set, reward, self.done
 
     def draw_frame_update(self):
         # draw sprites
@@ -160,11 +185,13 @@ class FlappyBirdEnv(object):
         self.SCREEN.blit(self.IMAGES['base'], (self.basex, self.BASEY))
         # print score so player overlaps the score
         self.SCREEN.blit(self.IMAGES['player'][self.playerIndex], (self.playerx, self.playery))
+
         pygame.display.update()
+        self.FPSCLOCK.tick(self.FPS)
 
     def one_iter(self, action):
         if self.done:
-            print "Game end, please init game!"
+            return
 
         if action == 1:
             if self.playery > -2 * self.IMAGES['player'][0].get_height():
@@ -213,6 +240,8 @@ class FlappyBirdEnv(object):
         if self.upperPipes[0]['x'] < -self.IMAGES['pipe'][0].get_width():
             self.upperPipes.pop(0)
             self.lowerPipes.pop(0)
+
+        self.draw_frame_update()
 
         return 1, False
 
@@ -302,13 +331,17 @@ class FlappyBirdEnv(object):
 
 if __name__ == '__main__':
     env = FlappyBirdEnv()
-    done = False
-    while not done:
-        reward, done = env.step(0)
-        print reward
-    print 'fuck'
     env.init_game()
-    done = False
-    while not done:
-        reward, done = env.step(0)
-        print reward
+    env.step(1)
+    env.step(1)
+    frame_set, _, _ = env.step(1)
+    import pdb
+    from scipy.misc import toimage
+    for i in xrange(0, 4):
+        toimage(frame_set[i]).show()
+    pdb.set_trace()
+    # while 1:
+    #     done = False
+    #     while not done:
+    #         _, done = env.step(0)
+    #     env.init_game()
