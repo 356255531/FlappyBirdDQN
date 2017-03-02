@@ -4,14 +4,22 @@ __author__ = "zhiwei"
 
 def epsilon_greedy_action_select(
     DQN_Q_approximator,
-    state
+    state,
+    action_num,
+    epsilon
 ):
     """
         Get the greedy action of a given state
         state: 4 frames
         action: [0, 1] or [1, 0] (np array)
     """
-    Q_func = DQN_Q_approximator.eval(state)
-    action = np.zeros(Q_func.shape())
-    action[Q_func.index(max(Q_func))] = 1
+    if np.random.random() < epsilon:
+        action_idx = np.random.randint(action_num)
+        action = np.zeros(action_num)
+        action[action_idx] = 1
+        return action
+    Q_func = DQN_Q_approximator.predict(state)
+    action = np.zeros(action_num)
+    index = Q_func.index(max(Q_func))
+    action[index] = 1
     return action

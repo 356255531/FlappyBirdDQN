@@ -15,5 +15,7 @@ def train_network(
     state_bar_predict_val = DQN.predict(states_bar)
     td_error = reward + discount_factor * max(state_bar_predict_val) - \
         actions * state_predict_val
-    label = reconstruct_label(actions, state_predict_val, td_error)
+    label = reconstruct_label(actions,
+                              state_predict_val,
+                              td_error)
     DQN.train_network(states, label)

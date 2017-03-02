@@ -1,5 +1,6 @@
 from itertools import cycle
 import random
+import numpy as np
 
 import pygame
 from pygame.locals import *
@@ -10,23 +11,33 @@ class FlappyBirdEnv(object):
     The flappy bird simulator for DRL algorithm
     API:
         init_game(preprocess=False):
-            Reset game to initial state (if perform learning)
+            reset game to initial state (if perform learning)
             return: the initial state (n frames here n = 4)
 
-        step()
+        step(action):
+            take the action in the simulator
+            return:
+                frame_set(state): np array,
+                reward,
+                done(if game over)
     """
 
     def __init__(self, rel_path='', frame_set_size=4, mode='play'):
         super(FlappyBirdEnv, self).__init__()
 
+        # The number of continous frame stream in one state
         self.frame_set_size = frame_set_size
 
+        # Set a higher frequency in training process
         if mode == 'play':
             self.FPS = 30
         else:
             self.FPS = 3000
+
+        # Display information
         self.SCREENWIDTH = 288
         self.SCREENHEIGHT = 512
+
         # amount by which base can maximum shift to left
         self.PIPEGAPSIZE = 100  # gap between upper and lower part of pipe
         self.BASEY = self.SCREENHEIGHT * 0.79
@@ -46,16 +57,13 @@ class FlappyBirdEnv(object):
         # list of pipes
         self.PIPES = rel_path + 'assets/sprites/pipe-green.png'
 
+        # Initialize the display
         pygame.init()
         self.FPSCLOCK = pygame.time.Clock()
         self.SCREEN = pygame.display.set_mode((self.SCREENWIDTH, self.SCREENHEIGHT))
         pygame.display.set_caption('Flappy Bird')
 
-        # game over sprite
-        self.IMAGES['gameover'] = pygame.image.load(rel_path + 'assets/sprites/gameover.png').convert_alpha()
-        # message sprite for welcome screen
-        self.IMAGES['message'] = pygame.image.load(rel_path + 'assets/sprites/message.png').convert_alpha()
-        # base (ground) sprite
+        # Load the graphical components
         self.IMAGES['base'] = pygame.image.load(rel_path + 'assets/sprites/base.png').convert_alpha()
 
         self.IMAGES['background'] = pygame.image.load(self.BACKGROUNDS).convert()
@@ -88,6 +96,9 @@ class FlappyBirdEnv(object):
         )
 
     def get_frame_set(self):
+        """
+        Take the next frames as the current state by performing 0 action with frame_set_size times
+        """
         if self.done:
             frame_set = [pygame.surfarray.array2d(
                 pygame.display.get_surface()).T] * self.frame_set_size
@@ -99,12 +110,12 @@ class FlappyBirdEnv(object):
                 pygame.display.get_surface()).T
             frame_set.append(frame)
             self.one_iter(0)
-        return frame_set
+        return np.array(frame_set)
 
     def init_game(self):
         """
         Init the game and render the start frames
-        return: initial frame set
+        return: initial frame set (state): numpy array
         """
         self.done = False
 
@@ -162,13 +173,22 @@ class FlappyBirdEnv(object):
         return frame_set
 
     def step(self, action):
+        """
+        Take action and feedback
+        Return:
+            Frame_set (state): numpy array in list
+            reward:integer,
+            if done: bool
+        """
+        if self.done:
+            print 'Game over please initialize'
+
         self.one_iter(action)
 
         frame_set = self.get_frame_set()
 
         if self.done:
             reward = 0
-            print 'Game over please initialize'
         else:
             reward = 1
 

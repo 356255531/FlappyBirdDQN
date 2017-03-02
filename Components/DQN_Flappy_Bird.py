@@ -5,23 +5,30 @@ import numpy as np
 class DQN_Flappy_Bird(object):
     """docstring for DQN_Flappy_Bird"""
 
-    def __init__(self, nn_learning_rate):
+    def __init__(self, action_num=2, dqn_start_learning_rate=10e-6):
         super(DQN_Flappy_Bird, self).__init__()
+        # Extract input date
+        self.action_num = action_num
+        self.dqn_start_learning_rate = dqn_start_learning_rate
+
+        # Create the network and set the input, output, and label
+        self.graph = tf.Graph()
         self.input, self.output = self.create_network()
-        self.label = tf.placeholder(tf.float32, shape=)
 
-        self.saver = self.tf.Saver(max_to_keep=5, keep_checkpoint_every_n_hours=1)
+        self.init_op = tf.global_variables_initializer()
+        self.saver = tf.train.Saver(max_to_keep=5, keep_checkpoint_every_n_hours=1)
+        self.sess = tf.Session()
 
+        self.action_batch = tf.placeholder('float', [None, self.action_num])
+        self.target_action_value_func = tf.placeholder('float', [None])
+        self.preditct_action_value_func = tf.reduce_sum(
+            tf.matmul(self.output, self.action_batch), axis=1)
         self.cost = tf.reduce_mean(
-            tf.nn.softmax_cross_entropy_with_logits(
-                logits=self.input, labels=self.label
-            )
+            tf.square(self.target_action_value_func - self.preditct_action_value_func)
         )
 
-        self.optimizer = tf.train.AdamOptimizer(nn_learning_rate).minimize(self.cost)
-
-        self.sess = tf.Session()
-        self.sess.run(tf.initialize_all_variables())
+        self.optimizer = tf.train.AdamOptimizer(dqn_start_learning_rate).minimize(self.cost)
+        self.sess.run(self.init_op)
 
     def __del__(self):
         self.sess.close()
@@ -38,7 +45,7 @@ class DQN_Flappy_Bird(object):
         def connect_conv2d(input, weights, stride):
             return tf.nn.conv2d(
                 input,
-                input,
+                weights,
                 [1, stride, stride, 1],
                 padding='SAME',
                 use_cudnn_on_gpu=True
@@ -47,8 +54,11 @@ class DQN_Flappy_Bird(object):
         def connect_activ_relu(input, bias):
             return tf.nn.relu(input + bias)
 
-        def connect_max_pool_2x2(intput):
+        def connect_max_pool_2x2(input):
             return tf.nn.max_pool(input, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding="SAME")
+
+        # input layer
+        input = tf.placeholder(tf.float32, [None, 80, 80, 4])
 
         # 1st conv layer filter parameter
         weights_conv_1 = gen_weights_var([8, 8, 4, 32])
@@ -70,11 +80,8 @@ class DQN_Flappy_Bird(object):
         weights_fc_layer_5 = gen_weights_var([512, 2])
         bias_fc_layer_5 = gen_bias_var([2])
 
-        # input layer
-        input_layer = tf.placeholder("float", [None, 80, 80, 4])
-
         # Convo layer 1
-        output_conv_lay_1 = connect_conv2d(input_layer, weights_conv_1, 4)
+        output_conv_lay_1 = connect_conv2d(input, weights_conv_1, 4)
         output_active_con_lay_1 = connect_activ_relu(output_conv_lay_1, bias_activ_conv_1)
         output_max_pool_layer_1 = connect_max_pool_2x2(output_active_con_lay_1)
 
@@ -94,12 +101,17 @@ class DQN_Flappy_Bird(object):
         # Output layer
         output = tf.matmul(output_active_fc_layer_4, weights_fc_layer_5) + bias_fc_layer_5
 
-        return input_layer, output
+        return input, output
 
-    def save_weights(self, num_episode, saved_directory="./saved_weights"):
-        self.saver.save(self.sess, saved_directory, global_step=num_episode)
+    def predict(self, state):
+        import pdb
+        pdb.set_trace()
+        return self.sess.run(self.output, feed_dict={self.input: state})
 
-    def load_weights(self, saved_directory="./saved_weights"):
+    def save_weights(self, num_episode, saved_directory="saved_weights/"):
+        self.saver.save(self.sess, saved_directory + "dqn_weights", global_step=num_episode)
+
+    def load_weights(self, saved_directory="saved_weights/"):
         checkpoint = tf.train.get_checkpoint_state(saved_directory)
         if checkpoint and checkpoint.model_checkpoint_path:
             self.saver.restore(self.sess, checkpoint.model_checkpoint_path)
@@ -107,26 +119,12 @@ class DQN_Flappy_Bird(object):
         else:
             print("Could not find pre-trained network weights")
 
-    def batch_parser(self):
-        pass
+    def train_network(self, state_batch, action_batch, target_action_value_func_batch):
+        self.sess.run(self.optimizer, feed_dict={
+            self.input: state_batch,
+            self.target_action_value_func: target_action_value_func_batch,
+            self.action: action_batch})
 
-    def batch_parser(self, batch):
-        pass
-
-    def train_network(self, batch, discount_factor, epsilon):
-        # parse the batch input
-        batch_input_frames, batch_input_label = self.batch_parser(batch)
-
-        # train network
-        self.sess.run(optimizer, feed_dict={
-            self.input: batch_input_frames
-        })
-
-    def greedy_action_selection(self, frames):
-        return np.argmax(self.sess(self.output, feed_dict={self.input=frames}))
-
-    def epsilon_greedy_action_selection(self, frames, epsilon):
-        if rd.sample() < epsilon:
-            return rd.sample([0, 1])
-
-        return self.greedy_action_selection(frames)
+        predict_action_value_func_batch = self.predict(state_batch, action_batch)
+        error = np.sum(np.square(predict_action_value_func_batch - target_action_value_func_batch))
+        return error
