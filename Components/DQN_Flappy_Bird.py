@@ -104,8 +104,8 @@ class DQN_Flappy_Bird(object):
         return input, output
 
     def predict(self, state):
-        import pdb
-        pdb.set_trace()
+        # import pdb
+        # pdb.set_trace()
         return self.sess.run(self.output, feed_dict={self.input: state})
 
     def save_weights(self, num_episode, saved_directory="saved_weights/"):

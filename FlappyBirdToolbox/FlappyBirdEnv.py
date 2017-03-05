@@ -110,6 +110,10 @@ class FlappyBirdEnv(object):
                 pygame.display.get_surface()).T
             frame_set.append(frame)
             self.one_iter(0)
+
+        frame_set = np.swapaxes(frame_set, 0, 2)
+        frame_set = np.swapaxes(frame_set, 0, 1)
+
         return np.array(frame_set)
 
     def init_game(self):

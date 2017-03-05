@@ -1,4 +1,5 @@
 import numpy as np
+import pdb
 __author__ = "zhiwei"
 
 
@@ -18,8 +19,9 @@ def epsilon_greedy_action_select(
         action = np.zeros(action_num)
         action[action_idx] = 1
         return action
+    state = np.array([state])
     Q_func = DQN_Q_approximator.predict(state)
     action = np.zeros(action_num)
-    index = Q_func.index(max(Q_func))
+    index = np.argmax(Q_func)
     action[index] = 1
     return action
