@@ -1,6 +1,8 @@
 from itertools import cycle
 import random
 import numpy as np
+import cv2
+import pdb
 
 import pygame
 from pygame.locals import *
@@ -115,6 +117,10 @@ class FlappyBirdEnv(object):
         frame_set = np.swapaxes(frame_set, 0, 1)
 
         return np.array(frame_set)
+
+    def get_display_image_greyscale(self):
+        return pygame.surfarray.array2d(
+            pygame.display.get_surface()).T
 
     def init_game(self):
         """

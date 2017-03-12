@@ -1,6 +1,7 @@
 from scipy.misc import imresize
 import numpy as np
 import pdb
+import cv2
 
 
 def image_preprocess(frame_set):
@@ -8,14 +9,12 @@ def image_preprocess(frame_set):
         Cut the images and perform downsampling
     """
     frame_set = frame_set[0:399, :, :]
-    idx_1 = frame_set > 0
-    idx_2 = frame_set <= 0
-    frame_set[idx_1] = 255
-    frame_set[idx_2] = 0
-
-    new_frame_set = imresize(frame_set, [80, 80, 4])
-
-    return new_frame_set
+    # pdb.set_trace()
+    for x in xrange(4):
+        frame_set[:, :, x] = cv2.threshold(frame_set[:, :, x], 1, 255, cv2.THRESH_BINARY)
+    # pdb.set_trace()`
+    frame_set = imresize(frame_set, [80, 80, 4])
+    return frame_set
 
 
 def main():

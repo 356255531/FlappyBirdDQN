@@ -38,7 +38,7 @@ DQN_Q_approximator.load_weights()  # check if pre-trained weights exists
 
 for num_episode in xrange(NUM_EPISODE):  # Q-Learning framework
     state = env.init_game()
-    # pdb.set_trace()
+    # pdb.set_trace
     state = image_preprocess(state)
     # pdb.set_trace()
     done = False
@@ -56,7 +56,7 @@ for num_episode in xrange(NUM_EPISODE):  # Q-Learning framework
         # pdb.set_trace()
         state_bar = image_preprocess(state_bar)
         # pdb.set_trace()
-        D.add((state, action, reward, state_bar))
+        D.add((state, action, reward, state_bar, done))
 
         batch = D.sample(BATCH_SIZE)
         # pdb.set_trace()
@@ -66,6 +66,7 @@ for num_episode in xrange(NUM_EPISODE):  # Q-Learning framework
             bellman_factor,
             epsilon
         )
+        print "reward", reward, "cost", cost, "action", np.argmax(action), "Game continue", done
 
         state = state_bar
 
