@@ -11,7 +11,7 @@ import numpy as np
 ACTION_NUM = 2
 
 # Training set up
-NUM_EPISODE = 1000000
+NUM_EPISODE = 10000000
 BATCH_SIZE = 32
 MEMERY_LIMIT = 50000
 FRAME_SETS_SIZE = 4
@@ -38,13 +38,13 @@ DQN_Q_approximator.load_weights()  # check if pre-trained weights exists
 
 for num_episode in xrange(NUM_EPISODE):  # Q-Learning framework
     state = env.init_game()
-
+    # pdb.set_trace()
     state = image_preprocess(state)
-
+    # pdb.set_trace()
     done = False
 
     while not done:
-        pdb.set_trace()
+        # pdb.set_trace()
         action = epsilon_greedy_action_select(
             DQN_Q_approximator,
             state,
@@ -60,7 +60,7 @@ for num_episode in xrange(NUM_EPISODE):  # Q-Learning framework
 
         batch = D.sample(BATCH_SIZE)
         # pdb.set_trace()
-        train_network(
+        cost = train_network(
             DQN_Q_approximator,
             batch,
             bellman_factor,
@@ -69,6 +69,7 @@ for num_episode in xrange(NUM_EPISODE):  # Q-Learning framework
 
         state = state_bar
 
-    if 0 == (num_episode % 1):
+    if 0 == (num_episode % 1000):
+        print "Cost is: ", cost
         DQN_Q_approximator.save_weights(num_episode)  # save weights
         epsilon = epsilon_decay(epsilon, EPSILON_DISCOUNT, EPSILON_FINAL)

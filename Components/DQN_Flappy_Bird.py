@@ -1,5 +1,6 @@
 import tensorflow as tf
 import numpy as np
+import pdb
 
 
 class DQN_Flappy_Bird(object):
@@ -12,23 +13,34 @@ class DQN_Flappy_Bird(object):
         self.dqn_start_learning_rate = dqn_start_learning_rate
 
         # Create the network and set the input, output, and label
-        self.graph = tf.Graph()
         self.input, self.output = self.create_network()
 
-        self.init_op = tf.global_variables_initializer()
         self.saver = tf.train.Saver(max_to_keep=5, keep_checkpoint_every_n_hours=1)
         self.sess = tf.Session()
 
-        self.action_batch = tf.placeholder('float', [None, self.action_num])
-        self.target_action_value_func = tf.placeholder('float', [None])
-        self.preditct_action_value_func = tf.reduce_sum(
-            tf.matmul(self.output, self.action_batch), axis=1)
+        # Cost
+        self.actions_batch = tf.placeholder('float', [None, self.action_num])
+        self.target_q_func_batch = tf.placeholder('float', [None])
+        self.preditct_q_func = tf.reduce_sum(
+            tf.multiply(self.output, self.actions_batch), reduction_indices=1)
         self.cost = tf.reduce_mean(
-            tf.square(self.target_action_value_func - self.preditct_action_value_func)
+            tf.square(self.target_q_func_batch - self.preditct_q_func)
         )
 
+        # Optimizer
         self.optimizer = tf.train.AdamOptimizer(dqn_start_learning_rate).minimize(self.cost)
+
+        # Init all the variable
+        self.init_op = tf.global_variables_initializer()
         self.sess.run(self.init_op)
+
+    def test_api(self, states_batch, actions_batch, target_q_func_batch):
+        return self.sess.run(
+            self.optimizer,
+            feed_dict={self.input: states_batch,
+                       self.actions_batch: actions_batch,
+                       self.target_q_func_batch: target_q_func_batch}
+        )
 
     def __del__(self):
         self.sess.close()
@@ -119,12 +131,11 @@ class DQN_Flappy_Bird(object):
         else:
             print("Could not find pre-trained network weights")
 
-    def train_network(self, state_batch, action_batch, target_action_value_func_batch):
-        self.sess.run(self.optimizer, feed_dict={
-            self.input: state_batch,
-            self.target_action_value_func: target_action_value_func_batch,
-            self.action: action_batch})
+    def train_network(self, states_batch, actions_batch, target_q_func_batch):
+        # pdb.set_trace()
+        _, cost = self.sess.run([self.optimizer, self.cost], feed_dict={
+            self.input: states_batch,
+            self.target_q_func_batch: target_q_func_batch,
+            self.actions_batch: actions_batch})
 
-        predict_action_value_func_batch = self.predict(state_batch, action_batch)
-        error = np.sum(np.square(predict_action_value_func_batch - target_action_value_func_batch))
-        return error
+        return cost

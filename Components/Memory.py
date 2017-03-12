@@ -16,22 +16,15 @@ class Memory(object):
     ):
         super(Memory, self).__init__()
         self.memory_limit = memory_limit
-        self.frame_sets_size = frame_sets_size
 
         self.memory = deque()
         self.size = 0
 
     def add(self, element):
-        if not self.__if_element_legal(element):
-            print 'Add failed'
-            return
-
         if self.size >= self.memory_limit:
             self.memory.popleft()
-            self.size -= 1
 
         self.memory.append(element)
-        self.size += 1
 
     def sample(self, size):
         if size <= 0:
@@ -42,9 +35,6 @@ class Memory(object):
             return list(self.memory)
 
         return rd.sample(self.memory, size)
-
-    def __if_element_legal(self, element):
-        return True
 
 
 if __name__ == '__main__':
