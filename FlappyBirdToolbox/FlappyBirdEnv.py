@@ -97,30 +97,21 @@ class FlappyBirdEnv(object):
             self.getHitmask(self.IMAGES['player'][2]),
         )
 
-    def get_frame_set(self):
-        """
-        Take the next frames as the current state by performing 0 action with frame_set_size times
-        """
-        if self.done:
-            frame_set = [pygame.surfarray.array2d(
-                pygame.display.get_surface()).T] * self.frame_set_size
-            return frame_set
-
-        frame_set = []
-        for x in xrange(4):
-            frame = pygame.surfarray.array2d(
-                pygame.display.get_surface()).T
-            frame_set.append(frame)
-            self.one_iter(0)
-
-        frame_set = np.swapaxes(frame_set, 0, 2)
-        frame_set = np.swapaxes(frame_set, 0, 1)
-
-        return np.array(frame_set)
-
-    def get_display_image_greyscale(self):
-        return pygame.surfarray.array2d(
+    def get_display_colored_image(self):
+        frame = pygame.surfarray.array3d(
             pygame.display.get_surface()).T
+        frame = np.swapaxes(frame, 0, 2)
+        frame = np.swapaxes(frame, 0, 1)
+        return frame
+
+    def image_preprocess(self, colored_image):
+        colored_image = colored_image[0:399, :, :]
+        greyscale_image = cv2.cvtColor(
+            cv2.resize(
+                colored_image, (80, 80)), cv2.COLOR_BGR2GRAY)
+        # pdb.set_trace()
+        _, greyscale_image = cv2.threshold(greyscale_image, 20, 255, cv2.THRESH_BINARY)
+        return greyscale_image
 
     def init_game(self):
         """
@@ -179,8 +170,12 @@ class FlappyBirdEnv(object):
         self.playerFlapped = False  # True when player flaps
 
         self.draw_frame_update()
-        frame_set = self.get_frame_set()
-        return frame_set
+        frame = self.get_display_colored_image()
+        # pdb.set_trace()
+        frame = self.image_preprocess(frame)
+        self.frame_set = np.stack((frame, frame, frame, frame), axis=2)
+
+        return self.frame_set
 
     def step(self, action):
         """
@@ -195,14 +190,17 @@ class FlappyBirdEnv(object):
 
         self.one_iter(action)
 
-        frame_set = self.get_frame_set()
+        frame = self.get_display_colored_image()
+        frame = self.image_preprocess(frame)
+        frame = np.reshape(frame, (80, 80, 1))
+        self.frame_set = np.append(frame, self.frame_set[:, :, :3], axis=2)
 
         if self.done:
             reward = 0
         else:
             reward = 1
 
-        return frame_set, reward, self.done
+        return self.frame_set, reward, self.done
 
     def draw_frame_update(self):
         # draw sprites

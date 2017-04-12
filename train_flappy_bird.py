@@ -2,11 +2,10 @@
 from FlappyBirdToolbox import FlappyBirdEnv
 # Import function
 from Components import Memory, DQN_Flappy_Bird
-from Components import image_preprocess, epsilon_greedy_action_select,\
-    train_network, epsilon_decay
+from Components import epsilon_greedy_action_select, train_network, epsilon_decay
 
-import pdb
 import numpy as np
+import time
 # Game set up
 ACTION_NUM = 2
 
@@ -37,9 +36,13 @@ DQN_Q_approximator = DQN_Flappy_Bird(ACTION_NUM)
 DQN_Q_approximator.load_weights()  # check if pre-trained weights exists
 
 for num_episode in xrange(NUM_EPISODE):  # Q-Learning framework
+    start = time.time()
     state = env.init_game()
+    end = time.time()
+    print (end - start)
+    # pdb.set_trace()
     # pdb.set_trace
-    state = image_preprocess(state)
+    # state = image_preprocess(state)
     # pdb.set_trace()
     done = False
 
@@ -54,7 +57,7 @@ for num_episode in xrange(NUM_EPISODE):  # Q-Learning framework
         # pdb.set_trace()
         state_bar, reward, done = env.step(np.argmax(action))
         # pdb.set_trace()
-        state_bar = image_preprocess(state_bar)
+        # state_bar = image_preprocess(state_bar)
         # pdb.set_trace()
         D.add((state, action, reward, state_bar, done))
 
