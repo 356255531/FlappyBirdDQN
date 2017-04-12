@@ -77,7 +77,7 @@ def train_dqn():
 
             state = state_bar
 
-        if 0 == (num_episode % 10000):
+        if 0 == ((num_episode + 1) % 100000):
             print "Cost is: ", cost
             DQN_Q_approximator.save_weights(num_episode)  # save weights
 
