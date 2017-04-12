@@ -33,7 +33,7 @@ class FlappyBirdEnv(object):
         if mode == 'play':
             self.FPS = 30
         else:
-            self.FPS = 3000
+            self.FPS = 30000
 
         # Display information
         self.SCREENWIDTH = 288

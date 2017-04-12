@@ -21,18 +21,16 @@ class Memory(object):
         self.size = 0
 
     def add(self, element):
+        self.memory.append(element)
+        self.size += 1
+
         if self.size >= self.memory_limit:
             self.memory.popleft()
 
-        self.memory.append(element)
-
     def sample(self, size):
-        if size <= 0:
+        if size <= 0 or size > self.size:
             raise ValueError("sample return empty list")
             return []
-
-        if size >= self.size:
-            return list(self.memory)
 
         return rd.sample(self.memory, size)
 

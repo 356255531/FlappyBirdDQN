@@ -10,21 +10,20 @@ import numpy as np
 ACTION_NUM = 2
 
 # Training set up
-NUM_EPISODE = 1000000000
 BATCH_SIZE = 32
 MEMERY_LIMIT = 50000
 FRAME_SETS_SIZE = 4
 
 # RL parameters
-BELLMAN_FACTOR = 0.99
+BELLMAN_FACTOR = 0.9
 
 # exploration setting
-OBSERVE_PHASE = 50000
-EXPLORE_PHASE = 100000
+OBSERVE_PHASE = 10000
+EXPLORE_PHASE = 200000
 
 # epsilon setting
 EPSILON_DISCOUNT = 0.9999
-EPSILON_START = 0.5
+EPSILON_START = 0.1
 EPSILON_FINAL = 0.0001
 
 
@@ -46,7 +45,10 @@ def train_dqn():
     # Q-Learning framework
     cost = 0
     total_step = 0
-    for num_episode in xrange(NUM_EPISODE):
+    num_episode = 0
+    while 1:
+        num_episode += 1
+
         state = env.init_game()
 
         done = False
@@ -73,7 +75,7 @@ def train_dqn():
                     batch,
                     BELLMAN_FACTOR
                 )
-            print "reward: ", reward, " cost: ", cost, " action: ", np.argmax(action), " if game continue: ", done, " epsilon: ", epsilon
+            print "reward: ", reward, " cost: ", cost, " action: ", np.argmax(action), " if game continue: ", not done, " epsilon: ", epsilon
 
             state = state_bar
 

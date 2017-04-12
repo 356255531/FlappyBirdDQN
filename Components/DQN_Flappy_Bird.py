@@ -18,7 +18,7 @@ class DQN_Flappy_Bird(object):
         self.actions_batch = tf.placeholder(tf.float32, [None, self.action_num])
         self.target_q_func_batch = tf.placeholder(tf.float32, [None])
         self.preditct_q_func = tf.reduce_sum(
-            tf.multiply(self.output_layer, self.actions_batch), reduction_indices=1)
+            tf.mul(self.output_layer, self.actions_batch), reduction_indices=1)
         self.cost = tf.reduce_mean(
             tf.square(self.target_q_func_batch - self.preditct_q_func)
         )
@@ -31,7 +31,7 @@ class DQN_Flappy_Bird(object):
         self.sess = tf.Session()
 
         # Init all the variable
-        self.sess.run(tf.global_variables_initializer())
+        self.sess.run(tf.initialize_all_variables())
 
     def create_network(self):
         def gen_weights_var(shape):
