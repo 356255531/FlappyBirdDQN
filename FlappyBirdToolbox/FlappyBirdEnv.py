@@ -2,7 +2,6 @@ from itertools import cycle
 import random
 import numpy as np
 import cv2
-import pdb
 
 import pygame
 from pygame.locals import *
@@ -47,17 +46,17 @@ class FlappyBirdEnv(object):
         self.IMAGES, self.HITMASKS = {}, {}
 
         # list of all possible players (tuple of 3 positions of flap)
-        self.PLAYERS = (
+        self.PLAYERS_PATH = (
             rel_path + 'assets/sprites/redbird-upflap.png',
             rel_path + 'assets/sprites/redbird-midflap.png',
             rel_path + 'assets/sprites/redbird-downflap.png'
         )
 
         # list of backgrounds
-        self.BACKGROUNDS = rel_path + 'assets/sprites/background-day.png'
+        self.BACKGROUNDS_PATH = rel_path + 'assets/sprites/background-day.png'
 
         # list of pipes
-        self.PIPES = rel_path + 'assets/sprites/pipe-green.png'
+        self.PIPES_PATH = rel_path + 'assets/sprites/pipe-green.png'
 
         # Initialize the display
         pygame.init()
@@ -68,20 +67,20 @@ class FlappyBirdEnv(object):
         # Load the graphical components
         self.IMAGES['base'] = pygame.image.load(rel_path + 'assets/sprites/base.png').convert_alpha()
 
-        self.IMAGES['background'] = pygame.image.load(self.BACKGROUNDS).convert()
+        self.IMAGES['background'] = pygame.image.load(self.BACKGROUNDS_PATH).convert()
 
         # select random player sprites
         self.IMAGES['player'] = (
-            pygame.image.load(self.PLAYERS[0]).convert_alpha(),
-            pygame.image.load(self.PLAYERS[1]).convert_alpha(),
-            pygame.image.load(self.PLAYERS[2]).convert_alpha(),
+            pygame.image.load(self.PLAYERS_PATH[0]).convert_alpha(),
+            pygame.image.load(self.PLAYERS_PATH[1]).convert_alpha(),
+            pygame.image.load(self.PLAYERS_PATH[2]).convert_alpha(),
         )
 
         # select random pipe sprites
         self.IMAGES['pipe'] = (
             pygame.transform.rotate(
-                pygame.image.load(self.PIPES).convert_alpha(), 180),
-            pygame.image.load(self.PIPES).convert_alpha(),
+                pygame.image.load(self.PIPES_PATH).convert_alpha(), 180),
+            pygame.image.load(self.PIPES_PATH).convert_alpha(),
         )
 
         # hismask for pipes
@@ -102,6 +101,7 @@ class FlappyBirdEnv(object):
         self.PLAYER_HEIGHT = self.IMAGES['player'][0].get_height()
         self.PIPE_WIDTH = self.IMAGES['pipe'][0].get_width()
         self.PIPE_HEIGHT = self.IMAGES['pipe'][0].get_height()
+        self.BACKGROUND_HEIGHT = self.IMAGES['background'].get_height()
 
     def get_display_colored_image(self):
         frame = pygame.surfarray.array3d(
@@ -130,7 +130,7 @@ class FlappyBirdEnv(object):
         playerIndexGen = cycle([0, 1, 2, 1])
         # iterator used to change playerIndex after every 5th iteration
 
-        playery = int((self.SCREENHEIGHT - self.IMAGES['player'][0].get_height()) / 2)
+        playery = int((self.SCREENHEIGHT - self.PLAYER_HEIGHT) / 2)
 
         basex = 0
 
@@ -176,9 +176,11 @@ class FlappyBirdEnv(object):
         self.playerFlapped = False  # True when player flaps
 
         self.draw_frame_update()
+
         frame = self.get_display_colored_image()
-        # pdb.set_trace()
+
         frame = self.image_preprocess(frame)
+
         self.frame_set = np.stack((frame, frame, frame, frame), axis=2)
 
         return self.frame_set
@@ -191,13 +193,18 @@ class FlappyBirdEnv(object):
             reward:integer,
             if done: bool
         """
+        if action not in [0, 1]:
+            raise ValueError("action is either 0 or 1")
+
         if self.done:
-            print 'Game over please initialize'
-            return
+            raise ValueError("Game over please initialize")
 
         reward = 0.1
 
-        self.one_iter(action)
+        self.one_frame_move(action)
+        self.one_frame_move(0)
+        self.one_frame_move(0)
+        self.one_frame_move(0)
 
         playerMidPos = self.playerx + self.PLAYER_WIDTH / 2
         for pipe in self.upperPipes:
@@ -232,15 +239,9 @@ class FlappyBirdEnv(object):
         pygame.display.update()
         self.FPSCLOCK.tick(self.FPS)
 
-    def one_iter(self, action):
+    def one_frame_move(self, action):
         if self.done:
             return
-
-        if action == 1:
-            if self.playery > -2 * self.IMAGES['player'][0].get_height():
-                self.playerVelY = self.playerFlapAcc
-                self.playerFlapped = True
-
         crashTest = self.checkCrash(
             {
                 'x': self.playerx,
@@ -250,9 +251,14 @@ class FlappyBirdEnv(object):
             self.upperPipes,
             self.lowerPipes
         )
-        if crashTest[0]:
+        if crashTest[0] or crashTest[1]:
             self.done = True
-            return 0, self.done
+            return
+
+        if 1 == action:
+            if self.SCREENHEIGHT - self.PLAYER_HEIGHT > self.playery and self.playery > -2 * self.PLAYER_HEIGHT:
+                self.playerVelY = self.playerFlapAcc
+                self.playerFlapped = True
 
         # playerIndex basex change
         if (self.loopIter + 1) % 3 == 0:
@@ -265,8 +271,7 @@ class FlappyBirdEnv(object):
             self.playerVelY += self.playerAccY
         if self.playerFlapped:
             self.playerFlapped = False
-        self.playerHeight = self.IMAGES['player'][self.playerIndex].get_height()
-        self.playery += min(self.playerVelY, self.BASEY - self.playery - self.playerHeight)
+        self.playery += min(self.playerVelY, self.BASEY - self.playery - self.PLAYER_HEIGHT)
 
         # move pipes to left
         for uPipe, lPipe in zip(self.upperPipes, self.lowerPipes):
@@ -285,8 +290,6 @@ class FlappyBirdEnv(object):
             self.lowerPipes.pop(0)
 
         self.draw_frame_update()
-
-        return 1, False
 
     def playerShm(self, playerShm):
         """oscillates the value of playerShm['val'] between 8 and -8"""
@@ -373,18 +376,19 @@ class FlappyBirdEnv(object):
 
 
 if __name__ == '__main__':
-    env = FlappyBirdEnv()
-    env.init_game()
-    env.step(1)
-    env.step(1)
-    frame_set, _, _ = env.step(1)
-    import pdb
-    from scipy.misc import toimage
-    for i in xrange(0, 4):
-        toimage(frame_set[i]).show()
-    pdb.set_trace()
-    # while 1:
-    #     done = False
-    #     while not done:
-    #         _, done = env.step(0)
-    #     env.init_game()
+    env = FlappyBirdEnv('',
+                        frame_set_size=4,
+                        mode="play")
+    while 1:
+        done = False
+        env.init_game()
+        while not done:
+            action = 0
+            for event in pygame.event.get():
+                if event.type == QUIT or (event.type == KEYDOWN and event.key == K_ESCAPE):
+                    pygame.quit()
+                    sys.exit()
+                if event.type == KEYDOWN and (event.key == K_SPACE or event.key == K_UP):
+                    action = 1
+            _, reward, done = env.step(action)
+            print reward

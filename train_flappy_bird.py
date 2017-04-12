@@ -5,7 +5,7 @@ from Components import Memory, DQN_Flappy_Bird
 from Components import epsilon_greedy_action_select, train_network, epsilon_decay
 
 import numpy as np
-import time
+
 # Game set up
 ACTION_NUM = 2
 
@@ -18,8 +18,8 @@ FRAME_SETS_SIZE = 4
 # RL parameters
 bellman_factor = 0.99
 
-EPSILON_DISCOUNT = 0.99
-EPSILON_START = 0.1
+EPSILON_DISCOUNT = 0.999
+EPSILON_START = 1
 EPSILON_FINAL = 0.0001
 
 epsilon = EPSILON_START
@@ -36,40 +36,31 @@ DQN_Q_approximator = DQN_Flappy_Bird(ACTION_NUM)
 DQN_Q_approximator.load_weights()  # check if pre-trained weights exists
 
 for num_episode in xrange(NUM_EPISODE):  # Q-Learning framework
-    start = time.time()
     state = env.init_game()
-    end = time.time()
-    print (end - start)
-    # pdb.set_trace()
-    # pdb.set_trace
-    # state = image_preprocess(state)
-    # pdb.set_trace()
+
     done = False
 
     while not done:
-        # pdb.set_trace()
         action = epsilon_greedy_action_select(
             DQN_Q_approximator,
             state,
             ACTION_NUM,
             epsilon
         )
-        # pdb.set_trace()
+
         state_bar, reward, done = env.step(np.argmax(action))
-        # pdb.set_trace()
-        # state_bar = image_preprocess(state_bar)
-        # pdb.set_trace()
+
         D.add((state, action, reward, state_bar, done))
 
         batch = D.sample(BATCH_SIZE)
-        # pdb.set_trace()
+
         cost = train_network(
             DQN_Q_approximator,
             batch,
             bellman_factor,
             epsilon
         )
-        print "reward", reward, "cost", cost, "action", np.argmax(action), "Game continue", done
+        print "reward: ", reward, " cost: ", cost, " action: ", np.argmax(action), " if game continue: ", done, " epsilon: ", epsilon
 
         state = state_bar
 
