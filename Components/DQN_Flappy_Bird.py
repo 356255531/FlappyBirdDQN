@@ -1,6 +1,5 @@
 import tensorflow as tf
 import numpy as np
-import pdb
 
 
 class DQN_Flappy_Bird(object):
@@ -13,16 +12,13 @@ class DQN_Flappy_Bird(object):
         self.dqn_start_learning_rate = dqn_start_learning_rate
 
         # Create the network and set the input, output, and label
-        self.input, self.output = self.create_network()
-
-        self.saver = tf.train.Saver(max_to_keep=5, keep_checkpoint_every_n_hours=1)
-        self.sess = tf.Session()
+        self.input_layer, self.output_layer = self.create_network()
 
         # Cost
-        self.actions_batch = tf.placeholder('float', [None, self.action_num])
-        self.target_q_func_batch = tf.placeholder('float', [None])
+        self.actions_batch = tf.placeholder(tf.float32, [None, self.action_num])
+        self.target_q_func_batch = tf.placeholder(tf.float32, [None])
         self.preditct_q_func = tf.reduce_sum(
-            tf.multiply(self.output, self.actions_batch), reduction_indices=1)
+            tf.multiply(self.output_layer, self.actions_batch), reduction_indices=1)
         self.cost = tf.reduce_mean(
             tf.square(self.target_q_func_batch - self.preditct_q_func)
         )
@@ -30,20 +26,12 @@ class DQN_Flappy_Bird(object):
         # Optimizer
         self.optimizer = tf.train.AdamOptimizer(dqn_start_learning_rate).minimize(self.cost)
 
+        # Create the session and saver
+        self.saver = tf.train.Saver()
+        self.sess = tf.Session()
+
         # Init all the variable
-        self.init_op = tf.global_variables_initializer()
-        self.sess.run(self.init_op)
-
-    def test_api(self, states_batch, actions_batch, target_q_func_batch):
-        return self.sess.run(
-            self.optimizer,
-            feed_dict={self.input: states_batch,
-                       self.actions_batch: actions_batch,
-                       self.target_q_func_batch: target_q_func_batch}
-        )
-
-    def __del__(self):
-        self.sess.close()
+        self.sess.run(tf.global_variables_initializer())
 
     def create_network(self):
         def gen_weights_var(shape):
@@ -69,9 +57,6 @@ class DQN_Flappy_Bird(object):
         def connect_max_pool_2x2(input):
             return tf.nn.max_pool(input, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding="SAME")
 
-        # input layer
-        input = tf.placeholder(tf.float32, [None, 80, 80, 4])
-
         # 1st conv layer filter parameter
         weights_conv_1 = gen_weights_var([8, 8, 4, 32])
         bias_activ_conv_1 = gen_bias_var([32])
@@ -92,8 +77,11 @@ class DQN_Flappy_Bird(object):
         weights_fc_layer_5 = gen_weights_var([512, 2])
         bias_fc_layer_5 = gen_bias_var([2])
 
+        # input layer
+        input_layer = tf.placeholder(tf.float32, [None, 80, 80, 4])
+
         # Convo layer 1
-        output_conv_lay_1 = connect_conv2d(input, weights_conv_1, 4)
+        output_conv_lay_1 = connect_conv2d(input_layer, weights_conv_1, 4)
         output_active_con_lay_1 = connect_activ_relu(output_conv_lay_1, bias_activ_conv_1)
         output_max_pool_layer_1 = connect_max_pool_2x2(output_active_con_lay_1)
 
@@ -111,19 +99,17 @@ class DQN_Flappy_Bird(object):
         output_active_fc_layer_4 = connect_activ_relu(output_fc_layer_4, bias_fc_layer_4)
 
         # Output layer
-        output = tf.matmul(output_active_fc_layer_4, weights_fc_layer_5) + bias_fc_layer_5
+        output_layer = tf.matmul(output_active_fc_layer_4, weights_fc_layer_5) + bias_fc_layer_5
 
-        return input, output
+        return input_layer, output_layer
 
     def predict(self, state):
-        # import pdb
-        # pdb.set_trace()
-        return self.sess.run(self.output, feed_dict={self.input: state})
+        return self.sess.run(self.output_layer, feed_dict={self.input_layer: state})
 
     def save_weights(self, num_episode, saved_directory="saved_weights/"):
         self.saver.save(self.sess, saved_directory + "dqn_weights", global_step=num_episode)
 
-    def load_weights(self, saved_directory="saved_weights/"):
+    def load_weights(self, saved_directory="saved_weights"):
         checkpoint = tf.train.get_checkpoint_state(saved_directory)
         if checkpoint and checkpoint.model_checkpoint_path:
             self.saver.restore(self.sess, checkpoint.model_checkpoint_path)
@@ -134,8 +120,7 @@ class DQN_Flappy_Bird(object):
     def train_network(self, states_batch, actions_batch, target_q_func_batch):
         # pdb.set_trace()
         _, cost = self.sess.run([self.optimizer, self.cost], feed_dict={
-            self.input: states_batch,
+            self.input_layer: states_batch,
             self.target_q_func_batch: target_q_func_batch,
             self.actions_batch: actions_batch})
-
         return cost
