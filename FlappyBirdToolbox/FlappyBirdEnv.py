@@ -97,6 +97,12 @@ class FlappyBirdEnv(object):
             self.getHitmask(self.IMAGES['player'][2]),
         )
 
+        # get the size of play and pipes
+        self.PLAYER_WIDTH = self.IMAGES['player'][0].get_width()
+        self.PLAYER_HEIGHT = self.IMAGES['player'][0].get_height()
+        self.PIPE_WIDTH = self.IMAGES['pipe'][0].get_width()
+        self.PIPE_HEIGHT = self.IMAGES['pipe'][0].get_height()
+
     def get_display_colored_image(self):
         frame = pygame.surfarray.array3d(
             pygame.display.get_surface()).T
@@ -187,18 +193,27 @@ class FlappyBirdEnv(object):
         """
         if self.done:
             print 'Game over please initialize'
+            return
+
+        reward = 0.1
 
         self.one_iter(action)
+
+        playerMidPos = self.playerx + self.PLAYER_WIDTH / 2
+        for pipe in self.upperPipes:
+            pipeMidPos = pipe['x'] + self.PIPE_WIDTH / 2
+            if pipeMidPos <= playerMidPos < pipeMidPos + 4:
+                # self.score += 1
+                # SOUNDS['point'].play()
+                reward = 1
+
+        if self.done:
+            reward = -1
 
         frame = self.get_display_colored_image()
         frame = self.image_preprocess(frame)
         frame = np.reshape(frame, (80, 80, 1))
         self.frame_set = np.append(frame, self.frame_set[:, :, :3], axis=2)
-
-        if self.done:
-            reward = 0
-        else:
-            reward = 1
 
         return self.frame_set, reward, self.done
 
